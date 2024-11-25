@@ -1,150 +1,198 @@
 "use strict";
 
-// Hämta referenser till HTML-element
+// Variables
 const divContainer = document.getElementById("cities");
-let userInput = prompt("Skriv in en stad");
-let h2Element = document.querySelector("h2");
+const userInput = prompt("Skriv in en stad");
+const h2Element = document.querySelector("h2");
 
-// Funktion för att visa stad och hitta närmaste/fjärraste städer
-function showCity(cityName) {
-    // Hitta den stad som användaren skrev
-    const city = cities.find(city => city.name.toLowerCase() === cityName.toLowerCase());
+let currentCity = 0;
+let closestCity = 0;
+let furthestCity = 0;
+let closestDistance = 99999;
+let furthestDistance = 0;
+
+// function for finding closest and furthest city, if the city is found
+//the highlightCityfunction will be called and the find Closest and furthest. 
+function showCity() {
+    currentCity = cities.find(city => city.name.toLowerCase() === userInput.toLowerCase());
     
-    if (city) {
-        h2Element.textContent = `${city.name} (${city.country})`;
-        document.title = city.name;
-        highlightCity(city.id); // Markera staden i listan
-        findClosestAndFurthest(city.id); // Hitta närmaste och fjärraste städer
+    if (currentCity) {
+        h2Element.textContent = `${currentCity.name} (${currentCity.country})`;
+        document.title = currentCity.name;
+        highlightCity();
+        findClosestAndFurthest();
     } else {
-        h2Element.textContent = `${cityName} finns inte i databasen.`;
+        h2Element.textContent = `${userInput} finns inte i databasen.`;
         document.title = "not found";
     }
 }
 
-// Funktion för att markera den valda staden i listan
-function highlightCity(cityId) {
+function highlightCity() {
     const allCityBoxes = divContainer.getElementsByClassName("cityBox");
     for (let cityBox of allCityBoxes) {
-        const cityName = cityBox.textContent;
-        const city = cities.find(c => c.name === cityName);
-        cityBox.classList.toggle("target", city.id === cityId); // Markera vald stad
+        const city = cities.find(c => c.name === cityBox.textContent);
+        if (city && currentCity && city.id === currentCity.id) {
+            cityBox.classList.add("target");
+        } else {
+            cityBox.classList.remove("target");
+        }
     }
 }
 
-// Funktion för att hitta närmaste och fjärraste städer
-function findClosestAndFurthest(cityId) {
-    let closestCity = null;
-    let furthestCity = null;
-    let closestDistance = Infinity;
-    let furthestDistance = 0;
+function findClosestAndFurthest() {
+    // Loop through each distance record in the 'distances' array
+    for (let i = 0; i < distances.length; i++) {
+        const currentDistance = distances[i]; // Get the current distance record
 
-    distances.forEach(dist => {
-        if (dist.city1 === cityId) {
-            if (dist.distance < closestDistance) {
-                closestDistance = dist.distance;
-                closestCity = dist.city2;
+        // Check if the current city is the first city in the distance pair
+        if (currentCity && currentDistance.city1 === currentCity.id) {
+            // Compare the distance with the closest and furthest distances
+            if (currentDistance.distance < closestDistance) {
+                closestDistance = currentDistance.distance;
+                closestCity = currentDistance.city2;
             }
-            if (dist.distance > furthestDistance) {
-                furthestDistance = dist.distance;
-                furthestCity = dist.city2;
-            }
-        } else if (dist.city2 === cityId) {
-            if (dist.distance < closestDistance) {
-                closestDistance = dist.distance;
-                closestCity = dist.city1;
-            }
-            if (dist.distance > furthestDistance) {
-                furthestDistance = dist.distance;
-                furthestCity = dist.city1;
+            if (currentDistance.distance > furthestDistance) {
+                furthestDistance = currentDistance.distance;
+                furthestCity = currentDistance.city2;
             }
         }
-    });
+        // Check if the current city is the second city in the distance pair
+        else if (currentCity && currentDistance.city2 === currentCity.id) {
+            // Compare the distance with the closest and furthest distances
+            if (currentDistance.distance < closestDistance) {
+                closestDistance = currentDistance.distance;
+                closestCity = currentDistance.city1;
+            }
+            if (currentDistance.distance > furthestDistance) {
+                furthestDistance = currentDistance.distance;
+                furthestCity = currentDistance.city1;
+            }
+        }
+    }
 
-    markCities(closestCity, furthestCity);
-    displayDistances(closestCity, furthestCity, closestDistance, furthestDistance);
-
-    // Uppdatera texten i <span> för närmaste och fjärraste städer
-    updateDistanceText(closestCity, furthestCity);
+    // After finding the closest and furthest cities, call other functions to update the UI
+    markCities();
+    displayDistances();
+    updateDistanceText();
 }
 
-// Funktion för att markera den närmaste och fjärraste staden med klasser
-function markCities(closestCity, furthestCity) {
+
+function markCities() {
     const allCityBoxes = divContainer.getElementsByClassName("cityBox");
     for (let cityBox of allCityBoxes) {
-        const cityName = cityBox.textContent;
-        const city = cities.find(c => c.name === cityName);
+        const city = cities.find(c => c.name === cityBox.textContent);
 
-        cityBox.classList.remove("closest", "furthest"); // Ta bort tidigare markeringar
+        cityBox.classList.remove("closest", "furthest");
 
-        // Markera den närmaste och fjärraste staden
-        if (city.id === closestCity) {
+        if (city && closestCity && city.id === closestCity) {
             cityBox.classList.add("closest");
         }
-        if (city.id === furthestCity) {
+        if (city && furthestCity && city.id === furthestCity) {
             cityBox.classList.add("furthest");
         }
     }
 }
 
-// Funktion för att visa avstånden i svenska mil (för närmaste och fjärraste städer)
-function displayDistances(closestCity, furthestCity, closestDistance, furthestDistance) {
-    const closestDistanceMiles = (closestDistance / 10).toFixed(0); // Omvandlar till svenska mil (och tar bort decimaler)
-    const furthestDistanceMiles = (furthestDistance / 10).toFixed(0); // Omvandlar till svenska mil (och tar bort decimaler)
-
+function displayDistances() {
     const closestBox = divContainer.querySelector(".closest");
     const furthestBox = divContainer.querySelector(".furthest");
 
     if (closestBox) {
-        const closestCityName = cities.find(city => city.id === closestCity)?.name || "Okänd";
-        closestBox.innerHTML = `${closestCityName} ligger ${closestDistanceMiles} mil bort`;
+        const closestCityName = cities.find(city => city.id === closestCity)?.name;
+        closestBox.textContent = `${closestCityName} ligger ${(closestDistance / 10).toFixed(0)} mil bort`;
+        console.log(closestCityName);
     }
 
     if (furthestBox) {
-        const furthestCityName = cities.find(city => city.id === furthestCity)?.name || "Okänd";
-        furthestBox.innerHTML = `${furthestCityName} ligger ${furthestDistanceMiles} mil bort`;
+        const furthestCityName = cities.find(city => city.id === furthestCity)?.name;
+        furthestBox.textContent = `${furthestCityName} ligger ${(furthestDistance / 10).toFixed(0)} mil bort`;
     }
 }
 
-// Funktion för att uppdatera texten i <span id="closest"> och <span id="furthest">
-function updateDistanceText(closestCity, furthestCity) {
-    const closestCityName = cities.find(city => city.id === closestCity)?.name || "Okänd";
-    const furthestCityName = cities.find(city => city.id === furthestCity)?.name || "Okänd";
-
+function updateDistanceText() {
     const closestSpan = document.getElementById("closest");
     const furthestSpan = document.getElementById("furthest");
 
+    const closestCityName = cities.find(city => city.id === closestCity)?.name;
+    const furthestCityName = cities.find(city => city.id === furthestCity)?.name;
+
     if (closestSpan) {
-        closestSpan.textContent = `${closestCityName}`;
+        closestSpan.textContent = closestCityName;
     }
     if (furthestSpan) {
-        furthestSpan.textContent = `${furthestCityName}`;
+        furthestSpan.textContent = furthestCityName;
     }
 }
 
-// Skapa en lista med alla städer
-for (const city of cities) {
-    const newDiv = document.createElement("div");
-    newDiv.textContent = city.name;
-    newDiv.classList.add("cityBox");
-    divContainer.appendChild(newDiv);
+function createCityBoxes() {
+    for (const city of cities) {
+        const newDiv = document.createElement("div");
+        newDiv.textContent = city.name;
+        newDiv.classList.add("cityBox");
+        divContainer.appendChild(newDiv);
+    }
 }
 
-// Kör funktionen när användaren skriver in en stad
-showCity(userInput);
+function displayCityDistances() {
+    const container = document.getElementById("table");
+    let headerRow = "<div class='cell'></div>"; // Empty top-left cell
+
+    // Create the header row (city IDs across the top)
+    for (let i = 0; i < cities.length; i++) {
+        headerRow += `<div class='cell head_column'>${i}</div>`;
+    }
+
+    container.innerHTML = headerRow;
+
+    // Create rows for each city
+    for (let i = 0; i < cities.length; i++) {
+        const city = cities[i];
+        let row = `<div class='cell head_row'>${city.id} - ${city.name}</div>`; // Left header cell
+
+        for (let j = 0; j < cities.length; j++) {
+            const otherCity = cities[j];
+
+            // Find the distance between the two cities
+            const dist = distances.find(d => 
+                (d.city1 === city.id && d.city2 === otherCity.id) || 
+                (d.city1 === otherCity.id && d.city2 === city.id)
+            );
+
+            // Add cell with the distance value or blank if not found
+            const cellClass = (i % 2 === 0 ? 'even_row' : '') + ' ' + (j % 2 === 0 ? 'even_col' : '');
+            row += `<div class='cell ${cellClass}'>${dist ? (dist.distance / 10).toFixed(0) : ""}</div>`;
+        }
+
+        container.innerHTML += row; // Append the row to the table
+    }
+}
+
+// Example initialization to call the function
+// Assuming cities and distances arrays are defined elsewhere in your code
+// cities = [{ id: 1, name: "City A" }, { id: 2, name: "City B" }, ...];
+// distances = [{ city1: 1, city2: 2, distance: 100 }, ...];
+
+createCityBoxes();
+showCity();
+displayCityDistances();
 
 
 
+/*Here’s a supershort list of which functions are connected:
 
-// Recommended: constants with references to existing HTML-elements
-
-
-
-
-// Recommended: Ask for the city name and then the rest of the code
-
-
-
-
-
-
-
+createCityBoxes() → No dependencies, creates city boxes.
+showCity() → Calls:
+highlightCity()
+findClosestAndFurthest()
+highlightCity() → Uses currentCity to highlight the correct city box.
+findClosestAndFurthest() → Calls:
+markCities()
+displayDistances()
+updateDistanceText()
+markCities() → Marks closest and furthest cities in the UI.
+displayDistances() → Displays distances for closest and furthest cities.
+updateDistanceText() → Updates text for closest and furthest cities.
+displayCityDistances() → Creates and displays the table of distances between all cities.
+Dependencies:
+showCity() → Depends on highlightCity(), findClosestAndFurthest().
+findClosestAndFurthest() → Depends on markCities(), displayDistances(), updateDistanceText(). */

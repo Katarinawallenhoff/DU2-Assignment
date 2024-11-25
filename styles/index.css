@@ -85,7 +85,7 @@ main {
 
 #table .even_row {
   border-bottom: 2px solid black;
-  /* background-color: #eee; */
+   background-color: #eee; 
 }
 
 #table .even_col {
