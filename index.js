@@ -1,10 +1,9 @@
 "use strict";
 
 // Variables
-const divContainer = document.getElementById("cities");
-const userInput = prompt("Skriv in en stad");
-const h2Element = document.querySelector("h2");
-
+let divContainer = document.getElementById("cities");
+let userInput = prompt("Skriv in en stad");
+let h2Element = document.querySelector("h2");
 let currentCity = 0;
 let closestCity = 0;
 let furthestCity = 0;
